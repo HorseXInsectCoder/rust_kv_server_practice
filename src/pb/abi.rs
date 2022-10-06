@@ -156,7 +156,7 @@ pub struct CommandResponse {
     pub message: ::prost::alloc::string::String,
     /// 成功返回的 values
     #[prost(message, repeated, tag="3")]
-    pub value: ::prost::alloc::vec::Vec<Value>,
+    pub values: ::prost::alloc::vec::Vec<Value>,
     /// 成功返回的 kv pairs
     #[prost(message, repeated, tag="4")]
     pub pairs: ::prost::alloc::vec::Vec<KvPair>,

@@ -99,7 +99,7 @@ message CommandResponse {
   string message = 2;
 
   // 成功返回的 values
-  repeated Value value = 3;
+  repeated Value values = 3;
 
   // 成功返回的 kv pairs
   repeated KvPair pairs = 4;

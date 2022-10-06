@@ -3,6 +3,7 @@ mod command_service;
 use crate::*;
 use crate::command_request::RequestData;
 use crate::errors::KvError;
+use crate::storage::Storage;
 
 // 未来我们支持新命令时，只需要做两件事：为命令实现 CommandService、在 dispatch 方法中添加新命令的支持
 
@@ -19,6 +20,7 @@ pub trait CommandService {
 
 // 每一个命令都实现 CommandService trait 后，这里是命令分发的处理
 // 从 Request 中得到 Response，目前处理 HGET/HGETALL/HSET
+// cmd不能是&CommandRequest，否则下面的param也会变成引用，但execute又要求所有权，会报错
 pub fn dispatch(cmd: CommandRequest, store: &impl Storage) -> CommandResponse {
     match cmd.request_data {
         Some(RequestData::Hget(param)) => param.execute(store),
