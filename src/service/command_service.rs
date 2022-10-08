@@ -1,5 +1,6 @@
 use crate::*;
 use crate::errors::KvError;
+use pb::StringWrapper;
 
 
 impl CommandService for Hset {
@@ -29,6 +30,17 @@ impl CommandService for Hgetall {
     fn execute(self, store: &impl Storage) -> CommandResponse {
         match store.get_all(&self.table) {
             Ok(v) =>  v.into(),
+            Err(e) => e.into(),
+        }
+    }
+}
+
+impl CommandService for Hmget {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        match store.m_get(&self.table, self.keys.clone()) {
+            Ok(Some(v)) => v.into(),
+            Ok(None) => KvError::NotFound(
+                self.table, StringWrapper::from(self.keys.clone()).0).into(),
             Err(e) => e.into(),
         }
     }

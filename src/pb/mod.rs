@@ -34,6 +34,16 @@ impl CommandRequest {
             }))
         }
     }
+
+    /// 创建 HMGET 命令
+    pub fn new_hmget(table: impl Into<String>, keys: Vec<String>) -> Self {
+        Self {
+            request_data: Some(RequestData::Hmget(Hmget {
+                table: table.into(),
+                keys,
+            }))
+        }
+    }
 }
 
 impl KvPair {
@@ -111,5 +121,31 @@ impl From<KvError> for CommandResponse {
         }
 
         result
+    }
+}
+
+impl From<Vec<Value>> for CommandResponse {
+    fn from(_: Vec<Value>) -> Self {
+        todo!()
+    }
+}
+
+// #[derive(Debug)]
+// struct KvVecString(Vec<String>);
+//
+// impl ToString for KvVecString {
+//     fn to_string(&self) -> String {
+//         format!("{:?}", self.0)
+//     }
+// }
+
+#[derive(Debug)]
+pub struct StringWrapper(pub(crate) String);
+
+impl From<Vec<String>> for StringWrapper {
+    fn from(sw: Vec<String>) -> Self {
+        Self {
+            0: format!("{:?}", sw)
+        }
     }
 }

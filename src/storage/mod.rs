@@ -35,6 +35,12 @@ pub trait Storage {
     */
     /// 遍历 HashTable，返回 kv pair 的 Iterator
     fn get_iter(&self, table: &str) -> Result<Box<dyn Iterator<Item = KvPair>>, KvError>;
+
+    // ----------------------
+
+    // 实现HMGET、HMSET、HDEL、HMDEL、HEXIST、HMEXIST
+    // 从 table 中获取一组 key，返回它们的 value
+    fn m_get(&self, table: &str, keys: Vec<String>) -> Result<Option<Vec<Value>>, KvError>;
 }
 
 #[cfg(test)]
@@ -52,6 +58,12 @@ mod tests {
     fn memtable_get_all_should_work() {
         let store = MemTable::new();
         test_get_all(store);
+    }
+
+    #[test]
+    fn memtable_mget_should_work() {
+        let store = MemTable::new();
+        test_mget(store);
     }
 
 
@@ -112,5 +124,20 @@ mod tests {
             KvPair::new("k1", "v1".into()),
             KvPair::new("k2", "v2".into())
         ])
+    }
+
+    fn test_mget(store: impl Storage) {
+        store.set("table2", "k1".into(), "v1".into()).unwrap();
+        store.set("table2", "k2".into(), "v2".into()).unwrap();
+        let k_vec = vec!["k1".to_string(), "k2".to_string()];
+        let mut data = store.m_get("table2", k_vec).unwrap().unwrap();
+        data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // let v1 = <&str as Into<Value>>::into("v1");
+        // let v2 = <&str as Into<Value>>::into("v2");
+        assert_eq!(data, vec![
+            "v1".into(),
+            "v2".into()
+        ]);
+        println!("{:?}", data);
     }
 }

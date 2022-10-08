@@ -61,4 +61,11 @@ impl Storage for MemTable {
     fn get_iter(&self, table: &str) -> Result<Box<dyn Iterator<Item=KvPair>>, KvError> {
         todo!()
     }
+
+    fn m_get(&self, table: &str, keys: Vec<String>) -> Result<Option<Vec<Value>>, KvError> {
+        let table = self.get_or_create_table(table);
+        let values = keys.iter()
+            .map(|key| table.get(key).map(|v| v.value().clone()).unwrap()).collect::<Vec<_>>();
+        Ok(Some(values))
+    }
 }
