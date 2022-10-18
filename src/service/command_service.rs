@@ -71,6 +71,8 @@ impl CommandService for Hmset {
 }
 
 
+
+
 /*  这些测试的作用就是验证产品需求，比如：HSET 成功返回上一次的值（这和 Redis 略有不同，Redis 返回表示多少 key 受影响的一个整数）
     HGET 返回 Value
     HGETALL 返回一组无序的 Kvpair
@@ -186,6 +188,23 @@ mod tests {
     //         _ => todo!(),
     //     }
     // }
+
+    #[test]
+    fn mset_should_work() {
+        let store = MemTable::new();
+
+        set_key_pairs("t1", vec![("u1", "world")], &store);
+
+        let pairs = vec![
+            KvPair::new("u1", 10.1.into()),
+            KvPair::new("u2", 8.1.into()),
+        ];
+        let cmd = CommandRequest::new_hmset("t1", pairs);
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &["world".into(), Value::default()], &[]);
+    }
+
+
 
     // 测试成功返回的结果
     fn assert_res_ok(mut res: CommandResponse, values: &[Value], pairs: &[KvPair]) {

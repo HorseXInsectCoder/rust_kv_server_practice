@@ -44,6 +44,15 @@ impl CommandRequest {
             }))
         }
     }
+
+    pub fn new_hmset(table: impl Into<String>, pairs: Vec<KvPair>) -> Self {
+        Self {
+            request_data: Some(RequestData::Hmset(Hmset {
+                table: table.into(),
+                pairs
+            }))
+        }
+    }
 }
 
 impl KvPair {
@@ -133,6 +142,15 @@ impl From<Vec<Value>> for CommandResponse {
         }
     }
 }
+
+impl From<f64> for Value {
+    fn from(f: f64) -> Self {
+        Self {
+            value: Some(value::Value::Float(f))
+        }
+    }
+}
+
 
 // #[derive(Debug)]
 // struct KvVecString(Vec<String>);
