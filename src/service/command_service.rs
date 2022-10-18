@@ -70,6 +70,28 @@ impl CommandService for Hmset {
     }
 }
 
+impl CommandService for Hdel {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        match store.del(&self.table, &self.key) {
+            Ok(Some(v)) => v.into(),
+            Ok(None) => Value::default().into(),
+            Err(e) => e.into()
+        }
+    }
+}
+
+impl CommandService for Hmdel {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        self.keys
+            .iter()
+            .map(|key| match store.del(&self.table, &key) {
+                Ok(Some(v)) => v,
+                _ => Value::default(),
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
 
 
 
@@ -204,6 +226,30 @@ mod tests {
         assert_res_ok(res, &["world".into(), Value::default()], &[]);
     }
 
+    #[test]
+    fn hdel_should_work() {
+        let store = MemTable::new();
+        set_key_pairs("t1", vec![("u1", "hello")], &store);
+
+        // u2不存在，应该返回None
+        let cmd = CommandRequest::new_hdel("t1", "u2");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[Value::default()], &[]);
+
+        let cmd = CommandRequest::new_hdel("t1", "u1");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &["hello".into()], &[]);
+    }
+
+    #[test]
+    fn hmdel_should_work() {
+        let store = MemTable::new();
+        set_key_pairs("t1", vec![("u1", "v1"), ("u2", "v2")], &store);
+
+        let cmd = CommandRequest::new_hmdel("t1", vec!["u1".into(), "u3".into()]);
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &["v1".into(), Value::default()], &[]);
+    }
 
 
     // 测试成功返回的结果
