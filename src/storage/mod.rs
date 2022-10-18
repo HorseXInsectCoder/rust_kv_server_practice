@@ -38,9 +38,18 @@ pub trait Storage {
 
     // ----------------------
 
-    // 实现HMGET、HMSET、HDEL、HMDEL、HEXIST、HMEXIST
+    // 实现HMGET、HMSET、HDEL、HMDEL、HEXIST、HMEXIST，只需利用上面的命令即可实现
+
     // 从 table 中获取一组 key，返回它们的 value
-    fn m_get(&self, table: &str, keys: Vec<String>) -> Result<Option<Vec<Value>>, KvError>;
+    // fn m_get(&self, table: &str, keys: Vec<String>) -> Result<Option<Vec<Value>>, KvError>;
+    //
+    // fn m_set(&self, table: &str, keys: Vec<String>, value: Vec<Value>) -> Result<Option<Value>, KvError>;
+    //
+    // fn h_del(&self, table: &str, key: String) -> Result<Option<Value>, KvError>;
+    //
+    // fn h_exist(&self, table: &str, key: String) -> Result<Option<String>, KvError>;
+    //
+    // fn hm_exist(&self, table: &str, keys: Vec<String>) -> Result<Option<Vec<String>>, KvError>;
 }
 
 #[cfg(test)]
@@ -59,13 +68,6 @@ mod tests {
         let store = MemTable::new();
         test_get_all(store);
     }
-
-    #[test]
-    fn memtable_mget_should_work() {
-        let store = MemTable::new();
-        test_mget(store);
-    }
-
 
     // #[test]
     // fn memtable_iter_should_work() {
@@ -126,18 +128,5 @@ mod tests {
         ])
     }
 
-    fn test_mget(store: impl Storage) {
-        store.set("table2", "k1".into(), "v1".into()).unwrap();
-        store.set("table2", "k2".into(), "v2".into()).unwrap();
-        let k_vec = vec!["k1".to_string(), "k2".to_string()];
-        let mut data = store.m_get("table2", k_vec).unwrap().unwrap();
-        data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        // let v1 = <&str as Into<Value>>::into("v1");
-        // let v2 = <&str as Into<Value>>::into("v2");
-        assert_eq!(data, vec![
-            "v1".into(),
-            "v2".into()
-        ]);
-        println!("{:?}", data);
-    }
+
 }

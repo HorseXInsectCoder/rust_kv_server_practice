@@ -37,14 +37,39 @@ impl CommandService for Hgetall {
 
 impl CommandService for Hmget {
     fn execute(self, store: &impl Storage) -> CommandResponse {
-        match store.m_get(&self.table, self.keys.clone()) {
-            Ok(Some(v)) => v.into(),
-            Ok(None) => KvError::NotFound(
-                self.table, StringWrapper::from(self.keys.clone()).0).into(),
-            Err(e) => e.into(),
-        }
+        // match store.m_get(&self.table, self.keys.clone()) {
+        //     Ok(Some(v)) => v.into(),
+        //     Ok(None) => KvError::NotFound(
+        //         self.table, StringWrapper::from(self.keys.clone()).0).into(),
+        //     Err(e) => e.into(),
+        // }
+
+        self.keys.iter()
+            .map(|key| match store.get(&self.table, key) {
+                Ok(Some(v)) => v,
+                _ => Value::default(),
+            })
+            .collect::<Vec<_>>()
+            .into()
+
     }
 }
+
+impl CommandService for Hmset {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        self.pairs.into_iter()
+            .map(|pair| {
+                let result = store.set(&self.table, pair.key, pair.value.unwrap());
+                match result {
+                    Ok(Some(v)) => v,
+                    _ => Value::default(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
 
 /*  这些测试的作用就是验证产品需求，比如：HSET 成功返回上一次的值（这和 Redis 略有不同，Redis 返回表示多少 key 受影响的一个整数）
     HGET 返回 Value
@@ -116,15 +141,51 @@ mod tests {
         assert_res_ok(res, &[], pairs);
     }
 
-    // 从 Request 中得到 Response，目前处理 HGET/HGETALL/HSET
-    fn dispatch(cmd: CommandRequest, store: &impl Storage) -> CommandResponse {
-        match cmd.request_data.unwrap() {
-            RequestData::Hget(v) => v.execute(store),
-            RequestData::Hgetall(v) => v.execute(store),
-            RequestData::Hset(v) => v.execute(store),
-            _ => todo!(),
-        }
+    #[test]
+    fn memtable_mget_should_work() {
+        let store = MemTable::new();
+        test_mget(store);
     }
+
+
+    fn test_mget(store: impl Storage) {
+        // store.set("table2", "k1".into(), "v1".into()).unwrap();
+        // store.set("table2", "k2".into(), "v2".into()).unwrap();
+        // let k_vec = vec!["k1".to_string(), "k2".to_string()];
+        // let mut data = store.m_get("table2", k_vec).unwrap().unwrap();
+        // data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        // // let v1 = <&str as Into<Value>>::into("v1");
+        // // let v2 = <&str as Into<Value>>::into("v2");
+        // assert_eq!(data, vec![
+        //     "v1".into(),
+        //     "v2".into()
+        // ]);
+        // println!("{:?}", data);
+
+        let store = MemTable::new();
+
+        set_key_pairs(
+            "user",
+            vec![("u1", "Tyr"), ("u2", "Lindsey"), ("u3", "Rosie")],
+            &store,
+        );
+
+        let cmd = CommandRequest::new_hmget("user", vec!["u1".into(), "u4".into(), "u3".into()]);
+        let res = dispatch(cmd, &store);
+        let values = &["Tyr".into(), Value::default(), "Rosie".into()];
+        assert_res_ok(res, values, &[]);
+    }
+
+    // 从 Request 中得到 Response，目前处理 HGET/HGETALL/HSET
+    // fn dispatch(cmd: CommandRequest, store: &impl Storage) -> CommandResponse {
+    //     match cmd.request_data.unwrap() {
+    //         RequestData::Hget(v) => v.execute(store),
+    //         RequestData::Hgetall(v) => v.execute(store),
+    //         RequestData::Hset(v) => v.execute(store),
+    //         RequestData::Hmget(v) => v.execute(store),
+    //         _ => todo!(),
+    //     }
+    // }
 
     // 测试成功返回的结果
     fn assert_res_ok(mut res: CommandResponse, values: &[Value], pairs: &[KvPair]) {
@@ -141,5 +202,13 @@ mod tests {
         assert!(res.message.contains(msg));
         assert_eq!(res.values, &[]);
         assert_eq!(res.pairs, &[]);
+    }
+
+    fn set_key_pairs<T: Into<Value>>(table: &str, pairs: Vec<(&str, T)>, store: &impl Storage) {
+        pairs.into_iter()
+            .map(|(k, v)| CommandRequest::new_hset(table, k, v.into()))
+            .for_each(|cmd| {
+                dispatch(cmd, store);
+            });
     }
 }
