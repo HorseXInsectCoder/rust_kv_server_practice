@@ -93,6 +93,27 @@ impl CommandService for Hmdel {
     }
 }
 
+impl CommandService for Hexist {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        match store.contains(&self.table, &self.key) {
+            Ok(b) => Value::from(b).into(),      // 有可能是false，不能直接写成 true.into()。这里是把bool转成Value，然后再 into() 变成 CommandResponse
+            Err(e) => e.into()
+        }
+    }
+}
+
+impl CommandService for Hmexist {
+    fn execute(self, store: &impl Storage) -> CommandResponse {
+        self.keys
+            .iter()
+            .map(|key| match store.contains(&self.table, key) {
+                Ok(v) => v.into(),
+                _ => Value::default(),
+            })
+            .collect::<Vec<Value>>()
+            .into()
+    }
+}
 
 
 /*  这些测试的作用就是验证产品需求，比如：HSET 成功返回上一次的值（这和 Redis 略有不同，Redis 返回表示多少 key 受影响的一个整数）
@@ -249,6 +270,30 @@ mod tests {
         let cmd = CommandRequest::new_hmdel("t1", vec!["u1".into(), "u3".into()]);
         let res = dispatch(cmd, &store);
         assert_res_ok(res, &["v1".into(), Value::default()], &[]);
+    }
+
+    #[test]
+    fn hexist_should_work() {
+        let store = MemTable::new();
+        set_key_pairs("t1", vec![("u1", "v1"), ("u2", "v2")], &store);
+
+        let cmd = CommandRequest::new_hexist("t1", "u1");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[true.into()], &[]);
+
+        let cmd = CommandRequest::new_hexist("t1", "u3");
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[false.into()], &[]);
+    }
+
+    #[test]
+    fn hmexist_should_work() {
+        let store = MemTable::new();
+        set_key_pairs("t1", vec![("u1", "v1"), ("u2", "v2")], &store);
+
+        let cmd = CommandRequest::new_hmexist("t1", vec!["u1".into(), "u3".into()]);
+        let res = dispatch(cmd, &store);
+        assert_res_ok(res, &[true.into(), false.into()], &[]);
     }
 
 

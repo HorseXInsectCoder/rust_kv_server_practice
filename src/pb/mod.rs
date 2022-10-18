@@ -71,6 +71,24 @@ impl CommandRequest {
             }))
         }
     }
+
+    pub fn new_hexist(table: impl Into<String>, key: impl Into<String>) -> Self {
+        Self {
+            request_data: Some(RequestData::Hexist(Hexist {
+                table: table.into(),
+                key: key.into()
+            }))
+        }
+    }
+
+    pub fn new_hmexist(table: impl Into<String>, keys: Vec<String>) -> Self {
+        Self {
+            request_data: Some(RequestData::Hmexist(Hmexist {
+                table: table.into(),
+                keys
+            }))
+        }
+    }
 }
 
 impl KvPair {
@@ -169,6 +187,13 @@ impl From<f64> for Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(b: bool) -> Self {
+        Self {
+            value: Some(value::Value::Bool(b))
+        }
+    }
+}
 
 // #[derive(Debug)]
 // struct KvVecString(Vec<String>);
